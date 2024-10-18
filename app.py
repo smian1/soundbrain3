@@ -1,3 +1,5 @@
+import sys
+
 #import eventlet
 #eventlet.monkey_patch()
 
@@ -47,7 +49,7 @@ nltk.download('maxent_ne_chunker')
 nltk.download('words')
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Reduce logging noise from other libraries
@@ -58,11 +60,16 @@ logging.getLogger('socketio').setLevel(logging.WARNING)
 logging.getLogger('engineio').setLevel(logging.WARNING)
 
 # Initialize Flask app
-app = Flask(__name__)
-app.config.from_object(Config)
-app.config['TIMEZONE'] = pytz.timezone('UTC')
-db.init_app(app)
-socketio = SocketIO(app)
+try:
+    app = Flask(__name__)
+    app.config.from_object(Config)
+    app.config['TIMEZONE'] = pytz.timezone('UTC')
+    db.init_app(app)
+    socketio = SocketIO(app)
+    # ... rest of your initialization code ...
+except Exception as e:
+    logger.error(f"Error during app initialization: {e}", exc_info=True)
+    raise
 
 # Initialize Flask-Login
 login_manager = LoginManager()
@@ -827,5 +834,8 @@ if __name__ != '__main__':
     pass
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    socketio.run(app, host='0.0.0.0', port=port)
+    try:
+        port = int(os.environ.get('PORT', 5000))
+        socketio.run(app, host='0.0.0.0', port=port)
+    except Exception as e:
+        logger.error(f"Failed to run app: {e}", exc_info=True)
