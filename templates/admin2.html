@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoundBrain</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <!-- Include Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'purple-custom': '#8B5CF6',
+                        'pink-custom': '#EC4899',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Include Socket.IO -->
+    <script src="https://cdn.socket.io/4.5.1/socket.io.min.js"></script>
+    <!-- Add the compromise library -->
+    <script src="https://unpkg.com/compromise"></script>
+    <!-- Move your custom CSS here, after all scripts and styles -->
+    <style>
+        @tailwind base;
+        @tailwind components;
+        @tailwind utilities;
+
+        @layer components {
+            .summary-item {
+                @apply mb-6 pb-6 border-b border-gray-200;
+            }
+            .summary-header {
+                @apply flex justify-between items-start mb-2;
+            }
+            .summary-subject {
+                @apply font-semibold text-gray-800 text-lg mb-1;
+            }
+            .summary-tag {
+                @apply inline-block px-2 py-1 rounded-full text-xs font-semibold;
+            }
+            .summary-time {
+                @apply text-gray-500 text-sm;
+            }
+            .summary-content {
+                @apply text-gray-700 text-base leading-relaxed;
+            }
+            .tag-personal { @apply bg-purple-100 text-purple-800; }
+            .tag-education { @apply bg-blue-100 text-blue-800; }
+            .tag-health { @apply bg-green-100 text-green-800; }
+            .tag-finance { @apply bg-yellow-100 text-yellow-800; }
+            .tag-legal { @apply bg-red-100 text-red-800; }
+            .tag-philosophy { @apply bg-indigo-100 text-indigo-800; }
+            .tag-spiritual { @apply bg-pink-100 text-pink-800; }
+            .tag-science { @apply bg-teal-100 text-teal-800; }
+            .tag-entrepreneurship { @apply bg-orange-100 text-orange-800; }
+            .tag-parenting { @apply bg-purple-100 text-purple-800; }
+            .tag-romantic { @apply bg-red-100 text-red-800; }
+            .tag-travel { @apply bg-green-100 text-green-800; }
+            .tag-inspiration { @apply bg-yellow-100 text-yellow-800; }
+            .tag-technology { @apply bg-blue-100 text-blue-800; }
+            .tag-business { @apply bg-gray-100 text-gray-800; }
+            .tag-social { @apply bg-pink-100 text-pink-800; }
+            .tag-work { @apply bg-indigo-100 text-indigo-800; }
+            .tag-sports { @apply bg-teal-100 text-teal-800; }
+            .tag-other { @apply bg-gray-100 text-gray-800; }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* ... existing styles ... */
+        .soundbrain-header {
+            background: linear-gradient(90deg, rgba(75,0,130,1) 0%, rgba(139,92,246,1) 100%);
+        }
+        .tab-active {
+            background-color: #8B5CF6;
+            color: white;
+        }
+        .tab-inactive {
+            background-color: transparent;
+            color: #4B5563;
+        }
+        .tab-inactive:hover {
+            background-color: rgba(139, 92, 246, 0.1);
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #d3d3d3;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        input[type="range"]:hover {
+            opacity: 1;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #8B5CF6;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #8B5CF6;
+            cursor: pointer;
+        }
+        .current-date {
+            color: #4B5563;
+            font-weight: 600;
+        }
+        .selected-time {
+            color: #6B7280;
+            font-weight: 500;
+        }
+        .pagination-button {
+            background-color: #8B5CF6;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .pagination-button:hover {
+            background-color: #7C3AED;
+        }
+
+        @media (min-width: 768px) {
+            .inline-flex {
+                width: 100%;
+                justify-content: space-between;
+            }
+            .inline-flex button {
+                flex-grow: 1;
+                justify-content: center;
+            }
+        }
+    </style>
+    <!-- Add this just before the closing </head> tag -->
+    <script>
+        // Remove or comment out this line as we're now passing user_uid directly to the template
+        // const userUID = "{{ user_uid }}";
+    </script>
+    <!-- Add this to the head section -->
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-cloud@1.2.5/build/d3.layout.cloud.min.js"></script>
+    <!-- Make sure this line is before the main script -->
+    <!-- <script src="{{ url_for('static', filename='js/utils.js') }}"></script> -->
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+</head>
+<body class="bg-white flex flex-col h-screen">
+    <!-- Wrap your main content in a div with the content-wrapper class -->
+    <div class="content-wrapper">
+        <!-- Header -->
+        <header class="soundbrain-header text-white p-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center w-full md:w-auto justify-between mb-4 md:mb-0">
+                    <div class="flex items-center">
+                        <button id="mobileMenuToggle" class="md:hidden mr-4">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                        <h1 class="text-2xl font-bold">SoundBrain</h1>
+                    </div>
+                    <button id="showCalendarBtn" class="md:hidden bg-purple-600 text-white px-3 py-1 text-sm rounded-lg shadow-md">
+                        <i class="fas fa-calendar-alt mr-1"></i>Calendar
+                    </button>
+                </div>
+                <div class="flex items-center w-full md:w-auto justify-between">
+                    <a href="#" class="mr-4">
+                        <i class="fas fa-home"></i>
+                        <span class="ml-1 hidden md:inline">Home</span>
+                    </a>
+                    <div class="user-dropdown relative">
+                        <button id="user-menu-button" class="flex items-center space-x-2 focus:outline-none">
+                            <img src="{{ profile_picture }}" alt="Profile" class="w-8 h-8 rounded-full object-cover">
+                            <span class="mr-2 hidden md:inline">{{ first_name }} {{ last_name }}</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div id="user-dropdown-content" class="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg py-2 hidden">
+                            <div class="px-4 py-2 border-b border-gray-200">
+                                <p class="text-sm font-semibold text-gray-700">Logged in as:</p>
+                                <p class="text-sm text-gray-600">{{ first_name }} {{ last_name }}</p>
+                            </div>
+                            <div class="px-4 py-2 border-b border-gray-200">
+                                <p class="text-sm font-semibold text-gray-700">UID:</p>
+                                <p class="text-xs text-gray-600 break-all">{{ user_uid }}</p>
+                            </div>
+                            <a href="#" onclick="showSettingsModal(); return false;" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <i class="fas fa-cog mr-2"></i> Settings
+                            </a>
+                            <a href="{{ url_for('logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="flex flex-col md:flex-row flex-grow overflow-hidden">
+            <!-- Sidebar -->
+            <div id="sidebar" class="w-full md:w-1/4 bg-purple-100 p-4 transition-all duration-300 ease-in-out overflow-y-auto hidden md:block fixed inset-0 z-50">
+                <button id="closeSidebarBtn" class="absolute top-4 right-4 text-purple-800 md:hidden">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-purple-800">Calendar</h3>
+                </div>
+                <div id="calendar"></div>
+            </div>
+            
+            <!-- Main content -->
+            <div class="w-full md:w-3/4 p-4 overflow-y-auto">
+                <!-- Remove the "Show Calendar" button from here as it's now in the header -->
+
+                <!-- Update the date navigation -->
+                <div class="flex justify-between items-center mb-4">
+                    <button id="prevDate" class="text-purple-700 text-2xl px-2">&lt;</button>
+                    <h2 class="text-lg md:text-2xl current-date" id="currentDate">September 24, 2024</h2>
+                    <button id="nextDate" class="text-purple-700 text-2xl px-2">&gt;</button>
+                </div>
+                
+                <!-- Update the tab layout for better desktop and mobile responsiveness -->
+                <div class="mb-4 overflow-x-auto">
+                    <div class="inline-flex rounded-lg p-1 bg-purple-100 flex-nowrap whitespace-nowrap">
+                        <button id="liveTranscriptionTab" class="flex items-center px-4 py-2 text-sm md:text-base rounded-lg transition-colors duration-200 tab-active">
+                            <i class="fas fa-microphone mr-2"></i> Live
+                        </button>
+                        <button id="transcriptsTab" class="flex items-center px-4 py-2 text-sm md:text-base rounded-lg transition-colors duration-200 tab-inactive">
+                            <i class="fas fa-file-alt mr-2"></i> Transcripts
+                        </button>
+                        <button id="dashboardTab" class="flex items-center px-4 py-2 text-sm md:text-base rounded-lg transition-colors duration-200 tab-inactive">
+                            <i class="fas fa-chart-bar mr-2"></i> Dashboard
+                        </button>
+                        <button id="summariesTab" class="flex items-center px-4 py-2 text-sm md:text-base rounded-lg transition-colors duration-200 tab-inactive">
+                            <i class="fas fa-file-alt mr-2"></i> Summaries
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Move the time selection bar here, initially hidden -->
+                <div id="timeSelectionBar" class="mb-8 relative">
+                    <div class="flex justify-between items-center mb-2">
+                        <span id="startTime" class="text-sm text-gray-500">12:00 AM</span>
+                        <span id="endTime" class="text-sm text-gray-500">11:59 PM</span>
+                    </div>
+                    <input type="range" id="timeSlider" min="0" max="23" value="0" class="w-full">
+                    <div id="hourIndicator" class="absolute text-xs font-semibold text-purple-600" style="bottom: -20px; transform: translateX(-50%);">12 AM</div>
+                </div>
+                
+                <!-- Update the liveTranscriptionContent div -->
+                <div id="liveTranscriptionContent" class="flex-grow overflow-y-auto mb-4 space-y-4" style="height: calc(100vh - 300px);">
+                    <!-- Live transcription messages will be appended here -->
+                </div>
+
+                <!-- Update other content divs similarly -->
+                <div id="transcriptsContent" class="hidden flex-grow overflow-y-auto mb-4 space-y-4" style="height: calc(100vh - 300px);">
+                    <div id="selectedHour" class="text-center py-2 font-bold"></div>
+                    <div id="loadingIndicator" class="text-center py-4 hidden">
+                        <i class="fas fa-spinner fa-spin mr-2"></i> Loading transcripts...
+                    </div>
+                    <div id="transcriptsList">
+                        <!-- Historical transcript messages will be appended here -->
+                    </div>
+                    <div id="paginationControls" class="text-center py-4 hidden">
+                        <button id="prevPage" class="pagination-button mr-2">Previous</button>
+                        <span id="pageInfo" class="text-sm text-gray-600 font-medium"></span>
+                        <button id="nextPage" class="pagination-button ml-2">Next</button>
+                    </div>
+                </div>
+
+                <div id="dashboardContent" class="hidden flex-grow overflow-y-auto mb-4 space-y-4" style="height: calc(100vh - 300px);">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-white p-4 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold mb-2">Conversation Activity</h3>
+                            <div id="heatmapContainer" class="w-full h-64">
+                                <canvas id="heatmapChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold mb-2">Word Cloud</h3>
+                            <div id="wordCloudContainer" class="w-full h-64"></div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div class="bg-white p-4 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold mb-2">Most Active Hour</h3>
+                            <div id="mostActiveHour" class="text-3xl font-bold text-center"></div>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold mb-2">Total Segments</h3>
+                            <div id="totalSegments" class="text-3xl font-bold text-center"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="summariesContent" class="hidden flex-grow overflow-y-auto mb-4 space-y-4" style="height: calc(100vh - 300px);">
+                    <div id="summariesList" class="relative">
+                        <!-- Summaries will be appended here -->
+                    </div>
+                    <div id="summariesPaginationControls" class="text-center py-4 hidden">
+                        <button id="summariesPrevPage" class="pagination-button mr-2">Previous</button>
+                        <span id="summariesPageInfo" class="text-sm text-gray-600 font-medium"></span>
+                        <button id="summariesNextPage" class="pagination-button ml-2">Next</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include external libraries -->
+    <script src="https://cdn.socket.io/4.5.1/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-cloud@1.2.5/build/d3.layout.cloud.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/utc.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/timezone.js"></script>
+
+    <!-- Pass template variables to JavaScript -->
+    <script>
+        window.existingSegments = {{ segments|tojson|safe }} || [];
+        window.userUID = "{{ user_uid }}";
+        window.firstName = "{{ first_name }}";
+        window.lastName = "{{ last_name }}";
+        window.email = "{{ email }}";
+        window.timezone = "{{ timezone or 'Not set' }}";
+    </script>
+
+    <!-- Include your external JS files -->
+    <script src="{{ url_for('static', filename='js/settingsModal.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/userDropdown.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+    <style>
+        /* ... (existing styles) ... */
+
+        @media (max-width: 640px) {
+            .content-wrapper {
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+
+            #liveTranscriptionContent,
+            #transcriptsContent,
+            #dashboardContent,
+            #summariesContent {
+                height: calc(100vh - 200px);
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            /* Improve tab bar scrolling */
+            .overflow-x-auto {
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+
+            .overflow-x-auto::-webkit-scrollbar {
+                display: none;
+            }
+
+            /* Adjust sidebar for mobile */
+            #sidebar {
+                width: 100%;
+                height: 100%;
+                position: fixed;
+                top: 0;
+                left: 0;
+                z-index: 1000;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease-in-out;
+            }
+
+            #sidebar.show {
+                transform: translateX(0);
+            }
+        }
+    </style>
+
+    <!-- Add this at the bottom of the body, just before the closing </body> tag -->
+    <div id="transcriptModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+        <div class="relative top-10 mx-auto p-5 border w-11/12 max-w-3xl shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-2" id="modalTitle">Transcript</h3>
+                <div class="mt-2 px-2 py-3 max-h-[calc(100vh-200px)] overflow-y-auto" id="modalContent">
+                    <!-- Transcripts will be loaded here -->
+                </div>
+                <div class="mt-4">
+                    <button id="closeModal" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add this modal for settings -->
+    <div id="settingsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Settings</h3>
+                <div class="mt-2 px-7 py-3">
+                    <div class="scheduler-settings">
+                        <h4 class="text-md font-semibold mb-2">Scheduler Settings</h4>
+                        <p class="mb-2">Current interval: <span id="current-interval" class="font-bold"></span> minutes</p>
+                        <form id="scheduler-form" class="mt-4">
+                            <label for="interval" class="block text-sm font-medium text-gray-700">New interval (minutes):</label>
+                            <input type="number" id="interval" name="interval" min="1" required
+                                   class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            <button type="submit" class="mt-3 w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:text-sm">
+                                Update
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="closeSettingsModal" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // ... (existing JavaScript) ...
+
+    function showSettingsModal() {
+        document.getElementById('settingsModal').classList.remove('hidden');
+        fetchSchedulerSettings();
+    }
+
+    document.getElementById('closeSettingsModal').addEventListener('click', function() {
+        document.getElementById('settingsModal').classList.add('hidden');
+    });
+
+    // Fetch and display current scheduler settings
+    function fetchSchedulerSettings() {
+        fetch('/admin/scheduler')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('current-interval').textContent = data.interval;
+            })
+            .catch(error => console.error('Error fetching scheduler settings:', error));
+    }
+
+    // Update scheduler settings
+    document.getElementById('scheduler-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const interval = document.getElementById('interval').value;
+        fetch('/admin/scheduler', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({interval: interval}),
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message || data.error);
+            fetchSchedulerSettings();
+        })
+        .catch(error => console.error('Error updating scheduler settings:', error));
+    });
+
+    // ... (rest of your existing JavaScript) ...
+    </script>
+</body>
+</html>

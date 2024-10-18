@@ -1,0 +1,13 @@
+{
+  "session_id": "test_session_001",
+  "segments": [
+    {
+      "text": "Hello, this is a test segment.",
+      "speaker": "Speaker 1",
+      "speaker_id": 1,
+      "is_user": true,
+      "start_time": 0.0,
+      "end_time": 5.0
+    }
+  ]
+}

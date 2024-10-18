@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+*.so
+
+# Flask
+instance/
+.webassets-cache
+
+# Databases
+*.db
+*.sqlite3
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Heroku
+*.pyc
+staticfiles/
+
+# Replit specific
+.replit
+replit.nix
+.config/
+.cache/
+.upm/
+
+# Other
+*.bak
+*.tmp
+*.temp
+.Prompts/
+
+# NLTK data
+nltk_data/
+
+client_secret.json
+client_secrets.jsonclient_secret.json
+client_secrets.json
