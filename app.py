@@ -87,7 +87,7 @@ if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
     logger.error("Google OAuth credentials are not set. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.")
     sys.exit(1)
 
-redirect_uri = "https://soundbrain.replit.app/login/google/authorized"
+redirect_uri = "https://soundbrain-2dce81400d7f.herokuapp.com/login/google/authorized"
 
 google = oauth.register(
     name='google',
@@ -108,7 +108,7 @@ client_secrets = {
         "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
         "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
         "redirect_uris": [
-            "https://soundbrain.replit.app/login/google/authorized"
+            "https://soundbrain-2dce81400d7f.herokuapp.com/login/google/authorized"
         ]
     }
 }
@@ -120,7 +120,7 @@ with open('client_secrets.json', 'w') as f:
 flow = Flow.from_client_secrets_file(
     'client_secrets.json',
     scopes=["https://www.googleapis.com/auth/userinfo.profile", "https://www.googleapis.com/auth/userinfo.email", "openid"],
-    redirect_uri="https://soundbrain.replit.app/login/google/authorized"
+    redirect_uri="https://soundbrain-2dce81400d7f.herokuapp.com/login/google/authorized"
 )
 
 @login_manager.user_loader
